@@ -46,15 +46,14 @@ impl Board {
         for (_, e) in self.iterate_tiles() {
             if *e == Element::EMPTY {
                 continue;
-            } else {
-                *should.get_mut(e).unwrap() -= 1;
             }
+            *should.get_mut(e).unwrap() -= 1;
         }
         let rest = should
             .into_iter()
             .filter(|(_, count)| *count != 0)
             .collect::<Vec<_>>();
-        if rest.len() > 0 {
+        if !rest.is_empty() {
             return Err(rest);
         }
         return Ok(());
@@ -62,44 +61,44 @@ impl Board {
 }
 
 #[derive(Debug)]
-pub enum BoardParsingError {
+pub enum ParsingError {
     Parsing(serde_json::Error),
     Logic(Vec<(Element, i32)>),
 }
 
-impl std::fmt::Display for BoardParsingError {
+impl std::fmt::Display for ParsingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BoardParsingError::Parsing(s) => std::fmt::Display::fmt(&s, f),
-            BoardParsingError::Logic(vec) => {
+            ParsingError::Parsing(s) => std::fmt::Display::fmt(&s, f),
+            ParsingError::Logic(vec) => {
                 f.write_fmt(format_args!("Element count mismatch: {:#?}", vec))
             }
         }
     }
 }
 
-impl From<serde_json::Error> for BoardParsingError {
+impl From<serde_json::Error> for ParsingError {
     fn from(x: serde_json::Error) -> Self {
         Self::Parsing(x)
     }
 }
-impl From<Vec<(Element, i32)>> for BoardParsingError {
+impl From<Vec<(Element, i32)>> for ParsingError {
     fn from(x: Vec<(Element, i32)>) -> Self {
         Self::Logic(x)
     }
 }
 
 impl FromStr for Board {
-    type Err = BoardParsingError;
+    type Err = ParsingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let tiles: Vec<Element> = serde_json::from_str(s)?;
         let tile_map = tiles
             .iter()
             .zip(coord_iterator())
-            .map(|(t, c)| (AxialCoord::from(c), t.clone()))
+            .map(|(t, c)| (AxialCoord::from(c), *t))
             .collect();
-        let board = Board {
+        let board = Self {
             internal_storage: tile_map,
         };
         board.check()?;

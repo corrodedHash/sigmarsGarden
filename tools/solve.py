@@ -2,7 +2,7 @@ import ctypes
 import json
 from ctypes import cdll
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, cast
 import time
 
 import pyautogui
@@ -10,10 +10,9 @@ import pyautogui
 from sigmarsGarden.catalogue import Catalogue
 from sigmarsGarden.config import Configuration, R1440P_CONFIG
 from sigmarsGarden.match import match_squares
-from sigmarsGarden.parse import Element, getSquares
+from sigmarsGarden.parse import getSquares
 from sigmarsGarden.screenshot import get_screen
 from sigmarsGarden.acting import coord_to_graphic, origin_from_conf
-import cv2
 
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0
@@ -27,7 +26,6 @@ def parse(c: Catalogue, img: Any, conf: Configuration) -> str:
     )
 
     return json.dumps(mapped_tiles)
-
 
 COORD = Tuple[int, int]
 
@@ -47,7 +45,8 @@ def solve(
         print(decoded_result["error"])
         return None
     else:
-        return decoded_result["solution"]
+        solution = cast(List[Tuple[COORD, Optional[COORD]]], decoded_result["solution"])
+        return solution
 
 
 def act(solution: List[Tuple[COORD, Optional[COORD]]], conf: Configuration) -> None:
@@ -57,7 +56,7 @@ def act(solution: List[Tuple[COORD, Optional[COORD]]], conf: Configuration) -> N
     mouse_up_speed = 0.01
     move_speed = 0.02
 
-    def click_coord(coord) -> None:
+    def click_coord(coord: COORD) -> None:
         real_coord = coord_to_graphic(origin, coord, conf)
         pyautogui.moveTo(real_coord[0], real_coord[1])
         time.sleep(move_speed)
@@ -75,13 +74,9 @@ def act(solution: List[Tuple[COORD, Optional[COORD]]], conf: Configuration) -> N
 def loop(c: Catalogue, conf: Configuration) -> None:
     print("Taking Screenshot")
     x = get_screen()
-    # x = cv2.imread("testboards/3.jpg")
-    # cv2.imshow("preview",x)
-    # cv2.waitKey(100)
-    # input()
+
     json_board = parse(c, x, conf)
-    # print(json_board)
-    # input()
+
     solution = solve(json_board)
     if solution is None:
         return
@@ -90,7 +85,6 @@ def loop(c: Catalogue, conf: Configuration) -> None:
 
 def main() -> None:
 
-    # c = Catalogue(Path("/home/lukas/templates"))
     c = Catalogue(Path("E:/templates"))
 
     print("Sleeping")

@@ -32,8 +32,7 @@ fn is_alive(board: &OverlayBoard, coord: AxialCoord) -> bool {
 fn can_salt(board: &OverlayBoard, element: Element) -> bool {
     let salts = board.get_salted();
     return match salts.len() {
-        0 => true,
-        1 => true,
+        0 | 1 => true,
         2 => salts.iter().any(|x| *x == element),
         3 => {
             let my_element_count = salts.iter().filter(|x| **x == element).count();
@@ -44,10 +43,10 @@ fn can_salt(board: &OverlayBoard, element: Element) -> bool {
 }
 
 fn salt_check(board: &OverlayBoard, cell: Element, other_cell: Element) -> bool {
-    if cell == Element::SALT && !can_salt(&board, other_cell) {
+    if cell == Element::SALT && !can_salt(board, other_cell) {
         return false;
     }
-    if other_cell == Element::SALT && !can_salt(&board, cell) {
+    if other_cell == Element::SALT && !can_salt(board, cell) {
         return false;
     }
     return true;
@@ -93,19 +92,12 @@ pub fn enumerate_combinations(board: &OverlayBoard) -> Vec<Combination> {
         }
         for n in next_ones {
             let other_cell = board[n];
-            if cell.can_match(other_cell) && salt_check(&board, cell, other_cell) {
+            if cell.can_match(other_cell) && salt_check(board, cell, other_cell) {
                 result.push((x, Some(n)));
             }
         }
     }
     return result.into_iter().map(|(x, y)| Combination(x, y)).collect();
-}
-
-pub fn solution_from_stack(option_stack: &[Vec<Combination>]) -> Vec<Combination> {
-    return option_stack
-        .into_iter()
-        .map(|x| *x.last().unwrap())
-        .collect();
 }
 
 pub fn solution_to_json(solution: &[Combination]) -> serde_json::Value {
@@ -128,13 +120,12 @@ pub fn find_solution(board: Board) -> Result<Vec<Combination>, ()> {
         option_stack.push(enumerate_combinations(&overlay_board));
         let mut pushed_successful = false;
         while let Some(comb) = option_stack.last().unwrap().last() {
-            if !seen_hashes.insert(overlay_board.push_combination(*comb)) {
-                overlay_board.pop();
-                option_stack.last_mut().unwrap().pop();
-            } else {
+            if seen_hashes.insert(overlay_board.push_combination(*comb)) {
                 pushed_successful = true;
                 break;
             }
+            overlay_board.pop();
+            option_stack.last_mut().unwrap().pop();
         }
         if !pushed_successful {
             option_stack.pop();
@@ -147,11 +138,10 @@ pub fn find_solution(board: Board) -> Result<Vec<Combination>, ()> {
                     assert_eq!(overlay_board.overlay_count(), option_stack.len());
 
                     break;
-                } else {
-                    option_stack.pop();
-                    assert_eq!(overlay_board.overlay_count(), option_stack.len());
-                    continue;
                 }
+                option_stack.pop();
+                assert_eq!(overlay_board.overlay_count(), option_stack.len());
+                continue;
             }
             if option_stack.is_empty() {
                 return Err(());

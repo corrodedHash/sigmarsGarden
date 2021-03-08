@@ -3,7 +3,13 @@ name = "sigmar_solver"
 version = "0.1.0"
 authors = ["Lukas Wölfer <lukas.woelfer@rwth-aachen.de>"]
 edition = "2018"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+license_file = "../LICENSE"
+readme = "../README"
+repository = "https://github.com/corrodedHash/sigmarsGarden"
+keywords = ["game", "opus magnum", "solitaire", "shanghai solitaire"]
+categories = ["games"]
+description = "Solver for Opus Magnum minigame"
 
 [lib]
 crate-type = ["cdylib"]

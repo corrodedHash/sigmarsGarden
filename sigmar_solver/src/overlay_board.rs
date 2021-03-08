@@ -16,11 +16,7 @@ fn to_index(coord: AxialCoord) -> Option<u16> {
     let last_row_cell_count = coord.column() - COL_ID_START.get(column_index as usize)?;
     let last_row_cell_count: u16 = u16::try_from(last_row_cell_count).ok()?;
 
-    return Some(
-        (full_rows_cell_count + last_row_cell_count)
-            .try_into()
-            .expect("Should work"),
-    );
+    return Some(full_rows_cell_count + last_row_cell_count);
 }
 fn to_index_flag(coord: AxialCoord) -> u128 {
     to_index(coord).map(|x| 1 << x).unwrap_or_default()
@@ -30,8 +26,8 @@ fn index_to_coord(index: u16) -> Option<AxialCoord> {
     if index > 90 {
         return None;
     }
-    let mut full_row_count = 0u16;
-    for (row_index, length) in (0i32..).zip(
+    let mut full_row_count = 0_u16;
+    for (row_index, length) in (0_i32..).zip(
         ROW_LENGTHS
             .iter()
             .map(|x| u16::try_from(*x).expect("Should fit")),
@@ -45,14 +41,15 @@ fn index_to_coord(index: u16) -> Option<AxialCoord> {
         } else {
             return Some(AxialCoord::new(
                 row_index - BOARD_RADIUS,
-                i32::from(index - full_row_count) + COL_ID_START[row_index as usize],
+                i32::from(index - full_row_count)
+                    + COL_ID_START[usize::try_from(row_index).expect("Row index way too high")],
             ));
         }
     }
     return None;
 }
 fn index_flag_to_coord(flag: u128) -> Option<AxialCoord> {
-    index_to_coord(flag.trailing_zeros() as u16)
+    index_to_coord(u16::try_from(flag.trailing_zeros()).expect("Should never happen"))
 }
 
 #[test]
@@ -80,18 +77,17 @@ pub struct OverlayBoard {
 
 impl OverlayBoard {
     fn overlay_sum(&self) -> u128 {
-        self.overlays.iter().fold(0u128, |x, y| x | *y)
+        self.overlays.iter().fold(0_u128, |x, y| x | *y)
     }
     fn push_constraint(&mut self, constraint: u128) {
         assert!(constraint & self.overlay_sum() == 0);
         self.overlays.push(constraint)
     }
     pub fn push_combination(&mut self, comb: Combination) -> u128 {
-        let constraint = if let Some(x) = comb.1 {
-            to_index_flag(comb.0) | to_index_flag(x)
-        } else {
-            to_index_flag(comb.0)
-        };
+        let constraint = comb.1.map_or_else(
+            || to_index_flag(comb.0),
+            |x| to_index_flag(comb.0) | to_index_flag(x),
+        );
         self.push_constraint(constraint);
         self.overlay_sum()
     }
@@ -105,10 +101,10 @@ impl OverlayBoard {
         self.board
             .iterate_tiles()
             .map(|(c, e)| {
-                if to_index_flag(*c) & self.overlay_sum() != 0 {
-                    (c, &Element::EMPTY)
-                } else {
+                if to_index_flag(*c) & self.overlay_sum() == 0 {
                     (c, e)
+                } else {
+                    (c, &Element::EMPTY)
                 }
             })
             .collect()
@@ -130,10 +126,10 @@ impl OverlayBoard {
             .iter()
             .flat_map(|x| {
                 self.salt.iter().filter_map(move |s| {
-                    if *s & *x != 0 {
-                        Some(self.board[index_flag_to_coord(*x ^ *s).unwrap()])
-                    } else {
+                    if *s & *x == 0 {
                         None
+                    } else {
+                        Some(self.board[index_flag_to_coord(*x ^ *s).unwrap()])
                     }
                 })
             })
@@ -157,7 +153,7 @@ impl From<Board> for OverlayBoard {
     fn from(b: Board) -> Self {
         let mut metals = b
             .iterate_tiles()
-            .filter(|(c, e)| e.is_metal())
+            .filter(|(_, e)| e.is_metal())
             .collect::<Vec<_>>();
         metals.sort_by(|(_, e1), (_, e2)| e1.cmp_metal(**e2));
         let metal = metals

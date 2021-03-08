@@ -1,10 +1,13 @@
-use std::{result, str::FromStr};
+#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
+#![allow(clippy::needless_return)]
+// Silence serde error
+#![allow(clippy::use_self)]
+
+use std::str::FromStr;
 
 mod element;
-use element::Element;
 
 mod coord;
-use coord::{neighbor_coords, AxialCoord};
 
 mod board;
 use board::Board;
@@ -15,26 +18,17 @@ mod overlay_board;
 
 mod solving;
 
-#[test]
-fn bla() {
-    let mut x = 0..5;
-    while let Some(q) = x.next() {
-        for n in x.clone() {
-            println!("{} {}", q, n);
-        }
-    }
-}
-
 fn format_comb(Combination(one, other): &Combination, board: &OverlayBoard) -> String {
     let cell = board[*one];
-    if let Some(other) = other {
-        let other_cell = board[*other];
-        return format!(
-            "Combine {:#?} at {} with {:#?} at {}",
-            cell, one, other_cell, other
-        );
-    } else {
-        return format!("{:#?} at {}", cell, one);
+    match other {
+        Some(other) => {
+            let other_cell = board[*other];
+            format!(
+                "Combine {:#?} at {} with {:#?} at {}",
+                cell, one, other_cell, other
+            )
+        }
+        None => format!("{:#?} at {}", cell, one),
     }
 }
 
@@ -52,18 +46,20 @@ fn solve_intern(board_str: *const std::os::raw::c_char) -> Result<Vec<Combinatio
             return Err(format!("{:#?}", err));
         }
     };
-    let oboard = OverlayBoard::from(board.clone());
-    for comb in solving::enumerate_combinations(&oboard) {
-        println!("{}", format_comb(&comb, &oboard));
+    let overlay_board = OverlayBoard::from(board.clone());
+    for comb in solving::enumerate_combinations(&overlay_board) {
+        println!("{}", format_comb(&comb, &overlay_board));
     }
     match solving::find_solution(board) {
         Ok(solution) => return Ok(solution),
-        Err(err) => return Err("Search field exhausted. No solution found.".to_owned()),
+        Err(_err) => return Err("Search field exhausted. No solution found.".to_owned()),
     };
 }
 
 #[no_mangle]
 pub extern "C" fn solve(board_str: *const std::os::raw::c_char) -> *const std::os::raw::c_char {
+    //! # Panics
+    //! Panics when function can't allocate memory for return string
     let result = match solve_intern(board_str) {
         Ok(solution) => {
             let json_solution = solving::solution_to_json(&solution);

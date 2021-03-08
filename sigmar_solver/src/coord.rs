@@ -1,14 +1,15 @@
 #[derive(Clone, Debug, Copy, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[allow(clippy::module_name_repetitions)]
 pub struct AxialCoord((i32, i32));
 
 impl AxialCoord {
-    pub fn new(row: i32, column: i32) -> Self {
+    pub const fn new(row: i32, column: i32) -> Self {
         Self((row, column))
     }
-    pub fn row(&self) -> i32 {
+    pub const fn row(self) -> i32 {
         self.0 .0
     }
-    pub fn column(&self) -> i32 {
+    pub const fn column(self) -> i32 {
         self.0 .1
     }
 }
@@ -28,7 +29,6 @@ impl std::fmt::Display for AxialCoord {
     }
 }
 
-
 pub fn neighbor_coords(coord: AxialCoord) -> impl Iterator<Item = AxialCoord> {
     const ROW_IDS: [i32; 6] = [-1, -1, 0, 1, 1, 0];
     const COLUMN_IDS: [i32; 6] = [0, 1, 1, 0, -1, -1];
@@ -37,5 +37,3 @@ pub fn neighbor_coords(coord: AxialCoord) -> impl Iterator<Item = AxialCoord> {
         .zip(COLUMN_IDS.iter())
         .map(move |(row, column)| AxialCoord::new(coord.row() + row, coord.column() + column))
 }
-
-pub const BOARD_CELL_COUNT: usize = 91;
