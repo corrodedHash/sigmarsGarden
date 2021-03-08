@@ -1,5 +1,6 @@
 from sigmarsGarden.parse import getSquares
 from sigmarsGarden.config import Configuration, R1440P_CONFIG
+from sigmarsGarden.screenshot import get_screen
 import cv2
 from pathlib import Path
 from typing import List, Any
@@ -26,10 +27,10 @@ def create_templates(path: Path, templates: List[Any]) -> None:
 
 
 def main() -> None:
-    x = cv2.imread("testboards/1.jpg")
+    x = get_screen()
 
     squares = getSquares(x, R1440P_CONFIG)
-    create_templates(Path("/home/lukas/templates"), squares)
+    create_templates(Path("E:/templates"), squares)
 
 
 if __name__ == "__main__":

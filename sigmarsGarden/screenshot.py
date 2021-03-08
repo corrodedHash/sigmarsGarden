@@ -19,6 +19,6 @@ def get_screen() -> Any:
         pil_screenshot.save(path)
         np_screenshot = cv2.imread(path)
 
-    cropped_screenshot = np_screenshot[0:1440, 1920:]
+    cropped_screenshot = np_screenshot
 
     return cropped_screenshot
