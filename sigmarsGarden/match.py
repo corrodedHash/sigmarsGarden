@@ -33,6 +33,8 @@ def match_squares(
     if debug:
         lines = []
         for orig, line in zip(squares, debug_output):
+            print(*[(template[0][0], template[0][1]) for template in line], sep="\n")
+            print()
             lines.append(
                 np.concatenate(
                     (orig, *[template[0][2] for template in line], np.zeros_like(orig)),

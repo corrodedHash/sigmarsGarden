@@ -1,4 +1,3 @@
-
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Element {
     VITAE,
@@ -81,7 +80,7 @@ impl Element {
         if self.is_metal() && other == Self::QUICKSILVER && *self != Self::GOLD {
             return true;
         }
-        if (self.is_element() && other == Self::SALT) || *self == other {
+        if self.is_element() && (other == Self::SALT || *self == other) {
             return true;
         }
         if (*self == Self::VITAE && other == Self::MORT)
@@ -92,4 +91,3 @@ impl Element {
         return false;
     }
 }
-

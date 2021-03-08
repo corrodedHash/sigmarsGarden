@@ -30,10 +30,18 @@ fn index_to_coord(index: u16) -> Option<AxialCoord> {
     if index > 90 {
         return None;
     }
-    let mut full_row_count = 0;
-    for (row_index, length) in (0i32..).zip(ROW_LENGTHS.iter()) {
-        if index >= full_row_count + index {
-            full_row_count += index
+    let mut full_row_count = 0u16;
+    for (row_index, length) in (0i32..).zip(
+        ROW_LENGTHS
+            .iter()
+            .map(|x| u16::try_from(*x).expect("Should fit")),
+    ) {
+        if index
+            >= full_row_count
+                .checked_add(length)
+                .expect("Should not overflow")
+        {
+            full_row_count += length
         } else {
             return Some(AxialCoord::new(
                 row_index - BOARD_RADIUS,
@@ -57,7 +65,7 @@ fn indexing() {
 }
 
 #[test]
-fn reverseindexing() {
+fn reverse_indexing() {
     for (is, should) in (0..).zip(crate::board::coord_iterator()) {
         assert_eq!(AxialCoord::from(should), index_to_coord(is).unwrap());
     }
@@ -76,23 +84,16 @@ impl OverlayBoard {
     }
     fn push_constraint(&mut self, constraint: u128) {
         assert!(constraint & self.overlay_sum() == 0);
-        println!("overlay length: {}", self.overlays.len());
-        println!("added const: {:#0128b}", constraint);
-        println!("overlay sum: {:#0128b}", self.overlay_sum());
         self.overlays.push(constraint)
     }
-    fn push_1(&mut self, one: AxialCoord) {
-        self.push_constraint(to_index_flag(one));
-    }
-    fn push_2(&mut self, one: AxialCoord, two: AxialCoord) {
-        self.push_constraint(to_index_flag(one) | to_index_flag(two));
-    }
-    pub fn push_combination(&mut self, comb: Combination) {
-        if let Some(x) = comb.0 .1 {
-            self.push_2(comb.0 .0, x);
+    pub fn push_combination(&mut self, comb: Combination) -> u128 {
+        let constraint = if let Some(x) = comb.1 {
+            to_index_flag(comb.0) | to_index_flag(x)
         } else {
-            self.push_1(comb.0 .0);
-        }
+            to_index_flag(comb.0)
+        };
+        self.push_constraint(constraint);
+        self.overlay_sum()
     }
     pub fn overlay_count(&self) -> usize {
         self.overlays.len()
@@ -124,17 +125,20 @@ impl OverlayBoard {
             .find_map(|(e, i)| if i & constsum == 0 { Some(*e) } else { None })
             .unwrap_or(Element::EMPTY)
     }
-    pub fn get_salted(&self) -> impl Iterator<Item = Element> {
+    pub fn get_salted(&self) -> Vec<Element> {
         self.overlays
             .iter()
             .flat_map(|x| {
-                self.salt.iter().filter_map(|s| {
+                self.salt.iter().filter_map(move |s| {
                     if *s & *x != 0 {
-                        Some((*x ^ *s).trailing_zeros())
+                        Some(self.board[index_flag_to_coord(*x ^ *s).unwrap()])
+                    } else {
+                        None
                     }
                 })
             })
             .to_owned()
+            .collect()
     }
 }
 
